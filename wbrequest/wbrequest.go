@@ -2,9 +2,10 @@ package wbrequest
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -13,11 +14,11 @@ const (
 )
 
 func SendWithRetries(method string, url string, headers map[string]string) (body []byte, status_code int, err error) {
-	log.Printf("http request method: %v url: %v", method, url)
+	log.Debugf("http request method: %v url: %v", method, url)
 
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		log.Printf("http.NewRequest: %v\n", err)
+		log.Errorf("http.NewRequest: %v\n", err)
 		return nil, 0, err
 	}
 
@@ -35,14 +36,14 @@ func SendWithRetries(method string, url string, headers map[string]string) (body
 
 	r, err := DoWithRetries(req)
 	if err != nil {
-		log.Printf("Could not send request: %s", err)
+		log.Errorf("Could not send request: %s", err)
 		return nil, 0, err
 	}
 	defer r.Body.Close()
 
 	body, err = io.ReadAll(r.Body)
 	if err != nil {
-		log.Printf("Could not read response body: %s", err)
+		log.Errorf("Could not read response body: %s", err)
 		return nil, 0, err
 	}
 	return body, r.StatusCode, err
@@ -55,11 +56,11 @@ func DoWithRetries(request *http.Request) (response *http.Response, err error){
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("status code: %v\n", response.StatusCode)
+		log.Debugf("status code: %v\n", response.StatusCode)
 		if response.StatusCode == http.StatusOK {
 			break
 		}
-		log.Printf("retry after %d sec\n", kRetryIntervalSec)
+		log.Debugf("retry after %d sec\n", kRetryIntervalSec)
 		time.Sleep(time.Duration(kRetryIntervalSec) * time.Second)
 	}
 	return response, nil
